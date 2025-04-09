@@ -9,13 +9,9 @@ license = "MIT OR Apache-2.0"
 
 
 [dependencies]
-
-once_cell = "1.17.1"
+spin = "0.9"
+shared_memory = "0.12.4"
 
 
 [features]
-default = ["std"]
-std = []
 no-std = []
-
-[dev-dependencies]
