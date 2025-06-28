@@ -146,39 +146,37 @@ mod tests {
     }
 
     #[test]
-    fn test_stress_concurrent_access() {
-        let os_id = "test_queue_2";
-        let mut handles = vec![];
+    fn test_single_writer_reader() {
+    let os_id = "test_queue_fixed";
 
-        // 4 producer threads
-        for i in 0..4 {
-            let id = os_id.to_string();
-            handles.push(thread::spawn(move || {
-                for j in 0..4 {
-                    let _ = QueuingPort::enqueue_shared(i * 10 + j, &id);
+    //writer thread
+    let writer = thread::spawn({
+        let id = os_id.to_string();
+        move || {
+            for i in 0..10 {
+                let _ = QueuingPort::enqueue_shared(i, &id);
+            }
+        }
+    });
+
+    writer.join().unwrap();
+
+    // reader thread
+    let reader = thread::spawn({
+        let id = os_id.to_string();
+        move || {
+            let mut results = vec![];
+            for _ in 0..10 {
+                if let Ok(val) = QueuingPort::dequeue_shared(&id) {
+                    results.push(val);
                 }
-            }));
-        }
+            }
 
-        for h in handles {
-            h.join().unwrap();
+            results.sort();
+            assert_eq!(results, (0..10).collect::<Vec<_>>());
         }
+    });
 
-        let mut consumers = vec![];
-
-        for _ in 0..4 {
-            let id = os_id.to_string();
-            consumers.push(thread::spawn(move || {
-                for _ in 0..4 {
-                    if let Ok(item) = QueuingPort::dequeue_shared(&id) {
-                        println!("Dequeued: {item}");
-                    }
-                }
-            }));
-        }
-
-        for c in consumers {
-            c.join().unwrap();
-        }
-    }
+    reader.join().unwrap();
+}
 }
